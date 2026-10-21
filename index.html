@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="sv">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="robots" content="noindex">
+    <title>Skolan efter midnatt</title>
+    <style>
+    html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #e6f4f1;
+        overscroll-behavior: none
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%
+    }
+
+    .hud {
+        position: fixed;
+        z-index: 2;
+        pointer-events: none;
+        text-shadow: 0 2px 4px #000
+    }
+
+    #clock {
+        top: calc(10px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        background: rgba(0, 10, 12, .6);
+        border: 2px solid #2f7f78;
+        border-radius: 12px;
+        padding: 4px 16px;
+        font-variant-numeric: tabular-nums
+    }
+
+    #left {
+        top: calc(10px + env(safe-area-inset-top));
+        left: calc(10px + env(safe-area-inset-left));
+        font-size: 15px;
+        line-height: 1.5;
+        background: rgba(0, 10, 12, .55);
+        border-radius: 12px;
+        padding: 8px 12px;
+        max-width: 44vw
+    }
+
+    #bat {
+        display: inline-block;
+        width: 90px;
+        height: 10px;
+        background: #123;
+        border: 1px solid #6bb;
+        border-radius: 5px;
+        overflow: hidden;
+        vertical-align: middle
+    }
+
+    #batf {
+        height: 100%;
+        width: 100%;
+        background: #ffe066
+    }
+
+    #notes {
+        margin-top: 6px;
+        font-size: 13px;
+        opacity: .9
+    }
+
+    #code {
+        font-weight: 800;
+        letter-spacing: 3px;
+        font-size: 18px;
+        color: #8ce99a
+    }
+
+    #msg {
+        top: 62%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: clamp(16px, 3.4vw, 24px);
+        font-weight: 700;
+        text-align: center;
+        background: rgba(0, 10, 12, .7);
+        padding: 10px 18px;
+        border-radius: 14px;
+        max-width: 84vw;
+        opacity: 0;
+        transition: opacity .3s
+    }
+
+    #msg.show {
+        opacity: 1
+    }
+
+    #prompt {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, 40px);
+        font-size: 20px;
+        font-weight: 800;
+        background: rgba(0, 10, 12, .7);
+        border: 2px solid #8ce99a;
+        border-radius: 12px;
+        padding: 6px 14px;
+        display: none
+    }
+
+    #cross {
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        margin: -3px 0 0 -3px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .6)
+    }
+
+    #vig {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(160, 0, 20, 1) 130%);
+        opacity: 0
+    }
+
+    #hide {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: repeating-linear-gradient(90deg, #000 0 14vw, transparent 14vw 15vw);
+        opacity: 0;
+        transition: opacity .2s
+    }
+
+    body.inlocker #hide {
+        opacity: .92
+    }
+
+    .ov {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 8, 10, .82);
+        padding: 16px;
+        box-sizing: border-box
+    }
+
+    .card {
+        background: #0d1f22;
+        border: 2px solid #2f7f78;
+        color: #e6f4f1;
+        border-radius: 20px;
+        padding: 22px 24px;
+        max-width: 520px;
+        width: 100%;
+        text-align: center;
+        max-height: 92vh;
+        overflow: auto;
+        box-shadow: 0 10px 40px #000
+    }
+
+    .card h1 {
+        margin: 0 0 4px;
+        font-size: 34px;
+        color: #8ce99a
+    }
+
+    .card h2 {
+        margin: 0 0 12px;
+        font-size: 17px;
+        color: #9cc;
+        font-weight: 600
+    }
+
+    .card ul {
+        text-align: left;
+        padding-left: 20px;
+        font-size: 16px;
+        line-height: 1.45;
+        margin: 0 0 16px
+    }
+
+    .btn {
+        font: inherit;
+        font-size: 24px;
+        font-weight: 900;
+        color: #04201c;
+        background: #8ce99a;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 34px;
+        box-shadow: 0 5px 0 #3b9b52;
+        cursor: pointer
+    }
+
+    .btn:active {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 #3b9b52
+    }
+
+    .hidden {
+        display: none !important
+    }
+
+    #scare {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(130, 0, 0, .7);
+        pointer-events: none
+    }
+
+    #scare svg {
+        width: min(95vw, 95vh);
+        animation: zoom .22s ease-out, shk .07s infinite
+    }
+
+    @keyframes zoom {
+        from {
+            transform:scale(.15)
+        }
+
+        to {
+            transform: scale(1)
+        }
+    }
+
+    @keyframes shk {
+        0% {
+            translate:-6px 3px
+        }
+
+        50% {
+            translate:6px -4px
+        }
+
+        100% {
+            translate: -3px -5px
+        }
+    }
+
+    .big {
+        font-size: 20px;
+        margin: 8px 0 16px
+    }
+
+    #pad .disp {
+        font-size: 44px;
+        letter-spacing: 12px;
+        font-weight: 900;
+        background: #021;
+        border: 2px solid #2f7f78;
+        border-radius: 12px;
+        padding: 8px;
+        margin: 0 0 12px;
+        min-height: 56px;
+        color: #8ce99a;
+        font-variant-numeric: tabular-nums
+    }
+
+    #pad .keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 12px
+    }
+
+    #pad .keys button {
+        font: inherit;
+        font-size: 28px;
+        font-weight: 800;
+        padding: 12px 0;
+        border-radius: 12px;
+        border: 2px solid #2f7f78;
+        background: #123;
+        color: #e6f4f1;
+        cursor: pointer
+    }
+
+    #pad .keys button:active {
+        background: #245
+    }
+
+    .tb {
+        position: fixed;
+        z-index: 4;
+        width: 78px;
+        height: 78px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, .7);
+        background: rgba(0, 20, 24, .55);
+        color: #fff;
+        font: inherit;
+        font-size: 30px;
+        line-height: 1.05;
+        touch-action: none;
+        display: none;
+        padding: 0
+    }
+
+    .tb small {
+        display: block;
+        font-size: 12px;
+        font-weight: 700
+    }
+
+    body.touch .tb {
+        display: block
+    }
+
+    #bUse {
+        right: calc(18px + env(safe-area-inset-right));
+        bottom: calc(26px + env(safe-area-inset-bottom));
+        width: 96px;
+        height: 96px;
+        background: rgba(40, 160, 90, .6)
+    }
+
+    #bLight {
+        right: calc(130px + env(safe-area-inset-right));
+        bottom: calc(18px + env(safe-area-inset-bottom))
+    }
+
+    #bThrow {
+        right: calc(18px + env(safe-area-inset-right));
+        bottom: calc(138px + env(safe-area-inset-bottom))
+    }
+
+    #bSneak {
+        right: calc(104px + env(safe-area-inset-right));
+        bottom: calc(112px + env(safe-area-inset-bottom));
+        width: 64px;
+        height: 64px;
+        font-size: 24px
+    }
+
+    #bSneak.on {
+        background: rgba(255, 224, 102, .6)
+    }
+
+    #joyb, #joyk {
+        position: fixed;
+        z-index: 3;
+        pointer-events: none;
+        border-radius: 50%;
+        display: none;
+        transform: translate(-50%, -50%)
+    }
+
+    #joyb {
+        width: 130px;
+        height: 130px;
+        background: rgba(255, 255, 255, .12);
+        border: 3px solid rgba(255, 255, 255, .45)
+    }
+
+    #joyk {
+        width: 58px;
+        height: 58px;
+        background: rgba(255, 255, 255, .7)
+    }
+
+    #bOut {
+        position: fixed;
+        z-index: 6;
+        left: 50%;
+        bottom: calc(34px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        font: inherit;
+        font-size: 26px;
+        font-weight: 900;
+        color: #04201c;
+        background: #8ce99a;
+        border: 4px solid #fff;
+        border-radius: 999px;
+        padding: 14px 34px;
+        box-shadow: 0 5px 18px #000;
+        cursor: pointer;
+        touch-action: manipulation
+    }
+
+    #pause {
+        position: fixed;
+        z-index: 4;
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(10px + env(safe-area-inset-right));
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        border: 2px solid #2f7f78;
+        background: rgba(0, 10, 12, .6);
+        color: #fff;
+        font-size: 20px;
+        cursor: pointer
+    }
+    </style>
+</head>
+<body>
+    <canvas id="c">
+    </canvas>
+    <div id="vig"></div>
+    <div id="hide"></div>
+    <div id="clock" class="hud">23:00</div>
+    <div id="left" class="hud">
+        🔦 
+        <span id="bat">
+            <span id="batf" style="display:block"></span>
+        </span>
+        <span id="batt"></span>
+        <br>
+        🖍️ 
+        <span id="chalk">3</span>
+         krita
+        <br>
+        <span id="code">Kod: _ _ _</span>
+        <div id="notes"></div>
+    </div>
+    <div id="cross" class="hud"></div>
+    <div id="prompt" class="hud"></div>
+    <div id="msg" class="hud"></div>
+    <button id="bOut" class="hidden">🚪 Gå ut</button>
+    <button id="pause">⏸</button>
+    <div id="joyb"></div>
+    <div id="joyk"></div>
+    <button class="tb" id="bUse">
+        ✋
+        <small>Använd</small>
+    </button>
+    <button class="tb" id="bLight">
+        🔦
+        <small>Lampa</small>
+    </button>
+    <button class="tb" id="bThrow">
+        🖍️
+        <small>Kasta</small>
+    </button>
+    <button class="tb" id="bSneak">🤫</button>
+
+    <div id="menu" class="ov">
+        <div class="card">
+            <h1>Skolan efter midnatt</h1>
+            <h2>Victoriaskolan, Göteborg. Klockan är 23:00.</h2>
+            <ul>
+                <li>
+                    Du somnade under en bänk och nu är du 
+                    <b>ensam kvar i skolan</b>
+                    .
+                </li>
+                <li>Något går omkring i korridorerna. Det är läskigt-roligt, men du vill inte bli hittad.</li>
+                <li>
+                    Hitta 
+                    <b>tre lappar</b>
+                     med gåtor. Svaren är siffrorna i koden till huvudentrén.
+                </li>
+                <li>
+                    Du måste ut 
+                    <b>innan klockan slår tolv</b>
+                    .
+                </li>
+                <li>Gömma dig i skåp 🚪, smyg 🤫, lura monstret genom att kasta krita 🖍️. Spring bara om du måste, det hörs!</li>
+                <li class="pc">
+                    Dator: 
+                    <b>WASD</b>
+                     gå, mus titta, 
+                    <b>Shift</b>
+                     smyga, 
+                    <b>Mellanslag</b>
+                     springa, 
+                    <b>E</b>
+                     använda, 
+                    <b>F</b>
+                     lampa, 
+                    <b>Q</b>
+                     kasta krita, 
+                    <b>Esc</b>
+                     paus.
+                </li>
+                <li class="tc">Mobil: joystick till vänster, dra till höger för att titta. Liten joystickutslag = smyga.</li>
+            </ul>
+            <button class="btn" id="startbtn">Starta</button>
+            <p id="best" style="margin:12px 0 0;color:#9cc"></p>
+        </div>
+    </div>
+
+    <div id="pausev" class="ov hidden">
+        <div class="card">
+            <h1>Paus</h1>
+            <button class="btn" id="resume">Fortsätt</button>
+        </div>
+    </div>
+
+    <div id="note" class="ov hidden">
+        <div class="card">
+            <h2 id="notetitle"></h2>
+            <p class="big" id="notetext"></p>
+            <button class="btn" id="noteok">Stäng</button>
+        </div>
+    </div>
+
+    <div id="pad" class="ov hidden">
+        <div class="card">
+            <h2>Huvudentrén. Skriv koden.</h2>
+            <div class="disp" id="disp">___</div>
+            <div class="keys" id="keys"></div>
+            <button class="btn" id="padclose" style="font-size:18px;padding:8px 22px">Tillbaka</button>
+        </div>
+    </div>
+
+    <div id="scare" class="hidden">
+        <svg viewBox="0 0 200 200">
+            <defs>
+                <radialGradient id="rg">
+                    <stop offset="0" stop-color="#ff3b2a"/>
+                    <stop offset="1" stop-color="#ff3b2a" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <g stroke="#0a070d" stroke-width="2.2" fill="none" opacity=".9">
+                <path d="M60 20 C50 80 52 140 56 199"/>
+                <path d="M72 14 C66 80 70 150 74 199"/>
+                <path d="M128 14 C134 80 130 150 126 199"/>
+                <path d="M140 20 C150 80 148 140 144 199"/>
+            </g>
+            <ellipse cx="100" cy="98" rx="60" ry="88" fill="#d3ccbe"/>
+            <ellipse cx="100" cy="98" rx="60" ry="88" fill="none" stroke="#7d766a" stroke-width="2"/>
+            <ellipse cx="72" cy="78" rx="21" ry="27" fill="#000"/>
+            <ellipse cx="128" cy="78" rx="21" ry="27" fill="#000"/>
+            <circle cx="72" cy="80" r="16" fill="url(#rg)"/>
+            <circle cx="128" cy="80" r="16" fill="url(#rg)"/>
+            <circle cx="72" cy="80" r="6" fill="#ff2a1a"/>
+            <circle cx="128" cy="80" r="6" fill="#ff2a1a"/>
+            <path d="M96 104 L100 120 L104 104Z" fill="#222"/>
+            <path d="M46 128 Q100 112 154 128 Q168 188 100 198 Q32 188 46 128Z" fill="#080003"/>
+            <path d="M50 130 L58 154 L66 132 L74 158 L83 134 L92 160 L100 134 L108 160 L117 134 L126 158 L134 132 L142 154 L150 130Z" fill="#f2ecda"/>
+            <path d="M60 192 L66 170 L72 194 L80 172 L88 198 L96 176 L104 198 L112 172 L120 194 L128 170 L134 192Z" fill="#f2ecda"/>
+        </svg>
+    </div>
+    <div id="caught" class="ov hidden">
+        <div class="card">
+            <div style="font-size:90px">👹</div>
+            <h1 style="color:#ff8787">BUUU!</h1>
+            <p class="big">Du blev utskrämd! Skolan börjar om från 23:00.</p>
+            <button class="btn" id="again1">Försök igen</button>
+        </div>
+    </div>
+
+    <div id="late" class="ov hidden">
+        <div class="card">
+            <div style="font-size:80px">🕛</div>
+            <h1 style="color:#ffd43b">Tolv slag!</h1>
+            <p class="big">Klockan slog tolv och du var kvar i skolan. Vaktmästaren hittar dig imorgon.</p>
+            <button class="btn" id="again2">Försök igen</button>
+        </div>
+    </div>
+
+    <div id="win" class="ov hidden">
+        <div class="card">
+            <div style="font-size:80px">🌙</div>
+            <h1>Du kom ut!</h1>
+            <p class="big" id="wintext"></p>
+            <button class="btn" id="again3">Spela igen</button>
+        </div>
+    </div>
+
+    <script src="lib/three.min.js"></script>
+    <script src="game.js?v=4"></script>
+</body>
+</html>
